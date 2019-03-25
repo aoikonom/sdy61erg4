@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string name="eap_logo">Eap logo</string>
+    <string name="open">Open</string>
+    <string name="Save">Save</string>
+    <string name="internet">Internet</string>
+    <string name="no_internet">No Internet Connection</string>
+    <string name="refresh">Refresh</string>
+    <string name="create">Create</string>
+    <string name="file_title">File Title</string>
+    <string name="contents">Contents</string>
+    <string name="no_file_title">Set the file name before creating file</string>
+</resources>
