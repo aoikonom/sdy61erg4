@@ -10,6 +10,7 @@ import android.support.v4.util.Pair;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.api.client.http.ByteArrayContent;
+import com.google.api.client.http.FileContent;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
@@ -29,6 +30,18 @@ public class GoogleDriveHelper {
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
     private final Drive mDriveService;
 
+    public static class DriveFile {
+        public String fileId;
+        public String name;
+        public String contents;
+
+        public DriveFile(String fileId, String name, String contents) {
+            this.fileId = fileId;
+            this.name = name;
+            this.contents = contents;
+        }
+    }
+
     public GoogleDriveHelper(Drive driveService) {
         mDriveService = driveService;
     }
@@ -36,14 +49,16 @@ public class GoogleDriveHelper {
     /**
      * Creates a text file in the user's My Drive folder and returns its file ID.
      */
-    public Task<String> createFile(String fileName) {
+    public Task<String> createFile(String fileName,String fileContents) {
         return Tasks.call(mExecutor, () -> {
             File metadata = new File()
                     .setParents(Collections.singletonList("root"))
                     .setMimeType("text/plain")
                     .setName(fileName + ".txt");
 
-            File googleFile = mDriveService.files().create(metadata).execute();
+            ByteArrayContent contentStream = ByteArrayContent.fromString("text/plain", fileContents);
+
+            File googleFile = mDriveService.files().create(metadata, contentStream).execute();
             if (googleFile == null) {
                 throw new IOException("Null result when requesting file creation.");
             }
@@ -124,15 +139,18 @@ public class GoogleDriveHelper {
      * Opens the file at the {@code uri} returned by a Storage Access Framework {@link Intent}
      * created by {@link #createFilePickerIntent()} using the given {@code contentResolver}.
      */
-    public Task<Pair<String, String>> openFileUsingStorageAccessFramework(
+    public Task<DriveFile> openFileUsingStorageAccessFramework(
             ContentResolver contentResolver, Uri uri) {
         return Tasks.call(mExecutor, () -> {
             // Retrieve the document's display name from its metadata.
             String name;
+            String fileId;
             try (Cursor cursor = contentResolver.query(uri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                     name = cursor.getString(nameIndex);
+                    int fileIdIndex = cursor.getColumnIndex("_id");
+                    fileId = cursor.getString(fileIdIndex);
                 } else {
                     throw new IOException("Empty cursor returned for file.");
                 }
@@ -150,7 +168,7 @@ public class GoogleDriveHelper {
                 content = stringBuilder.toString();
             }
 
-            return Pair.create(name, content);
+            return new DriveFile(fileId, name, content);
         });
     }
 }

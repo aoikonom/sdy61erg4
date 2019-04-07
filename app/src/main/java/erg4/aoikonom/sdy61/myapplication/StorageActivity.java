@@ -11,6 +11,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -24,7 +27,6 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccoun
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
-import com.google.api.services.drive.model.File;
 
 import java.util.Collections;
 
@@ -35,7 +37,8 @@ public class StorageActivity extends AppCompatActivity {
     private static final String TAG = "StorageActivity";
 
     private GoogleDriveHelper mDriveServiceHelper;
-    private String mOpenFileId;
+    private String mDriveFileId;
+    private String mSavedFileName;
 
     private EditText titleEditText;
     private EditText contentsEditText;
@@ -49,14 +52,34 @@ public class StorageActivity extends AppCompatActivity {
         rootView = findViewById(R.id.rootView);
         findViewById(R.id.internet).setOnClickListener(this::onBrowseEap);
         findViewById(R.id.storage_open).setOnClickListener(this::onStorageOpen);
-        findViewById(R.id.storage_create).setOnClickListener(this::onStorageCreate);
-        findViewById(R.id.storage_save).setOnClickListener(this::onStorageSave);
+        findViewById(R.id.storage_save).setOnClickListener(this::onStorageCreateOrSave);
 
         titleEditText = findViewById(R.id.title);
         contentsEditText = findViewById(R.id.contents);
 
         requestSignIn();
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_storage, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_continue:
+                Intent intent = new Intent(this, TabbedActivity.class);
+                startActivity(intent);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
 
     private void requestSignIn() {
         Log.d(TAG, "Requesting sign-in");
@@ -137,6 +160,7 @@ public class StorageActivity extends AppCompatActivity {
 
             case REQUEST_CODE_OPEN_DOCUMENT:
                 if (resultCode == Activity.RESULT_OK && resultData != null) {
+
                     Uri uri = resultData.getData();
                     if (uri != null) {
                         openFileFromFilePicker(uri);
@@ -171,15 +195,16 @@ public class StorageActivity extends AppCompatActivity {
             Log.d(TAG, "Opening " + uri.getPath());
 
             mDriveServiceHelper.openFileUsingStorageAccessFramework(getContentResolver(), uri)
-                    .addOnSuccessListener(nameAndContent -> {
-                        String name = nameAndContent.first;
-                        String content = nameAndContent.second;
+                    .addOnSuccessListener(driveFile -> {
+                        mDriveFileId = null; //driveFile.fileId;
+                        String name = driveFile.name;
+                        String content = driveFile.contents;
 
                         titleEditText.setText(name);
                         contentsEditText.setText(content);
+                        mSavedFileName = driveFile.name;
 
                         // Files opened through SAF cannot be modified.
-                        setReadOnlyMode();
                     })
                     .addOnFailureListener(exception ->
                             Log.e(TAG, "Unable to open file from picker.", exception));
@@ -196,10 +221,12 @@ public class StorageActivity extends AppCompatActivity {
 
 
             String fileName = titleEditText.getText().toString();
+            String fileContents = contentsEditText.getText().toString();
+
             if (TextUtils.isEmpty(fileName))
                 titleEditText.setError(getString(R.string.no_file_title));
             else
-                mDriveServiceHelper.createFile(fileName)
+                mDriveServiceHelper.createFile(fileName, fileContents)
                         .addOnSuccessListener(fileId -> readFile(fileId))
                         .addOnFailureListener(exception ->
                                 Log.e(TAG, "Couldn't create file.", exception));
@@ -221,46 +248,39 @@ public class StorageActivity extends AppCompatActivity {
 
                         titleEditText.setText(name);
                         contentsEditText.setText(content);
-
-                        setReadWriteMode(fileId);
                     })
                     .addOnFailureListener(exception ->
                             Log.e(TAG, "Couldn't read file.", exception));
         }
     }
 
+    private void onStorageCreateOrSave(View view) {
+        String fileName = titleEditText.getText().toString();
+
+        boolean shouldCreateFirst = mDriveFileId == null || !fileName.equals(mSavedFileName);
+        if (shouldCreateFirst)
+            onStorageCreate(view);
+        else
+            onStorageSave(view);
+
+    }
+
     /**
      * Saves the currently opened file created via {@link #onStorageSave(View view)} if one exists.
      */
     private void onStorageSave(View view) {
-        if (mDriveServiceHelper != null && mOpenFileId != null) {
-            Log.d(TAG, "Saving " + mOpenFileId);
+        if (mDriveServiceHelper != null && mDriveFileId != null) {
+            Log.d(TAG, "Saving " + mDriveFileId);
 
             String fileName = titleEditText.getText().toString();
             String fileContent = contentsEditText.getText().toString();
 
-            mDriveServiceHelper.saveFile(mOpenFileId, fileName, fileContent)
+            mDriveServiceHelper.saveFile(mDriveFileId, fileName, fileContent)
                     .addOnFailureListener(exception ->
                             Log.e(TAG, "Unable to save file via REST.", exception));
         }
     }
 
-    /**
-     * Updates the UI to read-only mode.
-     */
-    private void setReadOnlyMode() {
-        titleEditText.setEnabled(false);
-        contentsEditText.setEnabled(false);
-        mOpenFileId = null;
-    }
 
-    /**
-     * Updates the UI to read/write mode on the document identified by {@code fileId}.
-     */
-    private void setReadWriteMode(String fileId) {
-        titleEditText.setEnabled(true);
-        contentsEditText.setEnabled(true);
-        mOpenFileId = fileId;
-    }
 
 }
