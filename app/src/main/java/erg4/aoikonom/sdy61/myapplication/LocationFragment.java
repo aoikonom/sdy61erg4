@@ -5,10 +5,13 @@ import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
@@ -29,6 +32,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
  * create an instance of this fragment.
  */
 public class LocationFragment extends Fragment implements OnMapReadyCallback, ILocationFragment {
+    private static final String TAG = "LocationFragment";
+    private static final int REQUEST_CODE = 1;
     private Location mCurrentLocation;
     private Marker mCurrentPosMarker;
 
@@ -66,12 +71,23 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
 
         mapView.getMapAsync(this);
 
+        mapView.onCreate(savedInstanceState);
+
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int result = apiAvailability.isGooglePlayServicesAvailable(getActivity());
+        if (result != ConnectionResult.SUCCESS) {
+            if(apiAvailability.isUserResolvableError(result)) {
+                apiAvailability.getErrorDialog(getActivity(), result, 2404).show();
+            }
+        }
+
         return rootView;
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        mapView.onResume();
         Activity activity = getActivity();
         if (activity instanceof TabbedActivity) {
             ((TabbedActivity) activity).setmLocationFragmentInterface(this);
@@ -81,12 +97,36 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
     @Override
     public void onPause() {
         super.onPause();
+        mapView.onPause();
         Activity activity = getActivity();
         if (activity instanceof TabbedActivity) {
             ((TabbedActivity) activity).setmLocationFragmentInterface(null);
         }
     }
 
+    @Override
+    public void onStop() {
+        super.onStop();
+        mapView.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
+        mapView.onDestroy();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        mapView.onLowMemory();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        mapView.onSaveInstanceState(out);
+    }
 
     @Override
     public void onAttach(Context context) {
@@ -161,13 +201,15 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
 
     @Override
     public void onLocationChanged(Location location) {
+        Log.d(TAG, "LocationChanged "  + location);
         mCurrentLocation = location;
         moveCamera(mCurrentLocation);
         if (mCurrentPosMarker == null)
             mCurrentPosMarker = mMap.addMarker(new MarkerOptions().
                     position(new LatLng(location.getLatitude(), location.getLongitude())).
-                    title("Current Position").icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_pegman)));
+                    title("Current Position"));
         else
             mCurrentPosMarker.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
+        mCurrentPosMarker.showInfoWindow();
     }
 }

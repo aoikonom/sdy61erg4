@@ -12,7 +12,9 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -41,13 +43,14 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class TabbedActivity extends AppCompatActivity implements LocationFragment.OnFragmentInteractionListener {
 
     private static final int RC_LOCATION = 1;
+    private static final String TAG = "TabbedActivity";
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
      * fragments for each of the sections. We use a
      * {@link FragmentPagerAdapter} derivative, which will keep every
      * loaded fragment in memory. If this becomes too memory intensive, it
      * may be best to switch to a
-     * {@link android.support.v13.app.FragmentStatePagerAdapter}.
+     * {@link android.support.v4.app.FragmentStatePagerAdapter}.
      */
     private SectionsPagerAdapter mSectionsPagerAdapter;
     private LocationRequest mLocationRequest;
@@ -120,9 +123,9 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
 
     protected void requestLocationCheckSettings() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(1000);
-        mLocationRequest.setFastestInterval(500);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(50000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_LOW_POWER);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
                 .addLocationRequest(mLocationRequest);
@@ -162,6 +165,7 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
     }
 
     private void stopLocationUpdates() {
+        Log.d(TAG, "StopLocationUpdates");
         if (locationUpdates) {
             locationUpdates = false;
             mFusedLocationClient.removeLocationUpdates(mLocationCallback);
@@ -198,6 +202,7 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
 
     @SuppressLint("MissingPermission")
     private void startLocationUpdates() {
+        Log.d(TAG, "StartLocationUpdates");
         locationUpdates = true;
         mFusedLocationClient.requestLocationUpdates(mLocationRequest,
                 mLocationCallback,
@@ -261,7 +266,15 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            return LocationFragment.newInstance();
+            switch (position) {
+                case 0 :
+                    return LocationFragment.newInstance();
+                case 1:
+                    return UserLoginFragment.newInstance();
+                case 2:
+                    return UserLoginFragment.newInstance();
+            }
+            return null;
         }
 
         @Override
@@ -276,9 +289,9 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
                 case 0:
                     return "MAP";
                 case 1:
-                    return "SECTION 2";
+                    return "REGISTER";
                 case 2:
-                    return "SECTION 3";
+                    return "AUGMENTED";
             }
             return null;
         }
