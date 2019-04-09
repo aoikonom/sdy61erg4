@@ -2,9 +2,14 @@ package erg4.aoikonom.sdy61.myapplication;
 
 import android.app.Activity;
 import android.content.Context;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.util.Pair;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +27,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 
 /**
  * A simple {@link Fragment} subclass.
@@ -35,6 +45,7 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
     private static final String TAG = "LocationFragment";
     private static final int REQUEST_CODE = 1;
     private Location mCurrentLocation;
+    private Location mPreviousLccation;
     private Marker mCurrentPosMarker;
 
 
@@ -58,7 +69,6 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
         super.onCreate(savedInstanceState);
 
 
-
     }
 
     @Override
@@ -76,7 +86,7 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
         int result = apiAvailability.isGooglePlayServicesAvailable(getActivity());
         if (result != ConnectionResult.SUCCESS) {
-            if(apiAvailability.isUserResolvableError(result)) {
+            if (apiAvailability.isUserResolvableError(result)) {
                 apiAvailability.getErrorDialog(getActivity(), result, 2404).show();
             }
         }
@@ -193,23 +203,89 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
     public void onLocationPermissionsEnabled() {
         try {
             mMap.setMyLocationEnabled(true);
-        }
-        catch (SecurityException e) {
+        } catch (SecurityException e) {
             e.printStackTrace();
         }
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        Log.d(TAG, "LocationChanged "  + location);
+        Log.d(TAG, "LocationChanged " + location);
         mCurrentLocation = location;
+        if (!location.hasSpeed()) {
+            location.setSpeed(0f);
+            if (mPreviousLccation != null) {
+                float distance = location.distanceTo(mPreviousLccation);
+                long timeElapsedInSeconds = (location.getTime() - mPreviousLccation.getTime()) / 1000;
+                if (timeElapsedInSeconds != 0) {
+                    float speed = distance / timeElapsedInSeconds;
+                    speed = (float) (Math.round(100.0*speed) / 100.0);
+                    location.setSpeed(speed);
+                }
+            }
+        }
+        mPreviousLccation = mCurrentLocation;
+        new AddressTask().execute(location);
+    }
+
+    private void onAddressFound(Pair<Location, String> address) {
+        if (address == null) return;
+        Location location = address.first;
         moveCamera(mCurrentLocation);
         if (mCurrentPosMarker == null)
-            mCurrentPosMarker = mMap.addMarker(new MarkerOptions().
+            mCurrentPosMarker = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_pegman)).
                     position(new LatLng(location.getLatitude(), location.getLongitude())).
-                    title("Current Position"));
-        else
+                    title(address.second).snippet(Float.toString(address.first.getSpeed())));
+        else {
             mCurrentPosMarker.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
+            mCurrentPosMarker.setTitle(address.second);
+            mCurrentPosMarker.setSnippet(Float.toString(address.first.getSpeed()) + "m/s");
+        }
         mCurrentPosMarker.showInfoWindow();
     }
+
+
+    private class AddressTask extends AsyncTask<Location, Void, Pair<Location, String>> {
+        @Override
+        protected Pair<Location, String> doInBackground(Location... locations) {
+            String errorMessage = "";
+            Location location = locations[0];
+            List<Address> addresses = null;
+            Geocoder geocoder = new Geocoder(LocationFragment.this.getActivity(), Locale.getDefault());
+
+            try {
+                addresses = geocoder.getFromLocation(
+                        location.getLatitude(),
+                        location.getLongitude(),
+                        // In this sample, get just a single address.
+                        1);
+            } catch (IOException ioException) {
+                // Catch network or other I/O problems.
+                ioException.printStackTrace();
+                Log.e(TAG, errorMessage, ioException);
+            }
+
+            // Handle case where no address was found.
+            if (addresses == null || addresses.size() == 0) return null;
+
+            Address address = addresses.get(0);
+            ArrayList<String> addressFragments = new ArrayList<>();
+
+            // Fetch the address lines using getAddressLine,
+            // join them, and send them to the thread.
+            for (int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
+                addressFragments.add(address.getAddressLine(i));
+            }
+            String result = TextUtils.join(System.getProperty("line.separator"),
+                    addressFragments);
+            return Pair.create(location, result);
+        }
+
+        @Override
+        protected void onPostExecute(Pair<Location,String> address) {
+            onAddressFound(address);
+        }
+    }
+
 }
+

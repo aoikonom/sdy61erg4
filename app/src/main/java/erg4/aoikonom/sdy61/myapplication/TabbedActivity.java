@@ -183,8 +183,8 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
 
 
     @AfterPermissionGranted(RC_LOCATION)
-    private void requestLocationPermission() {
-        String[] perms = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
+    public void requestLocationPermission() {
+        String[] perms = {Manifest.permission.ACCESS_FINE_LOCATION};
         if (EasyPermissions.hasPermissions(this, perms)) {
             try {
                 if (mLocationFragmentInterface != null)
