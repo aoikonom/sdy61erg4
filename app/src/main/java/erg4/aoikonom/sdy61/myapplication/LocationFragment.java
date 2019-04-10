@@ -236,21 +236,22 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
 
     private void onAddressFound(Pair<Location, String> address) {
         if (address == null) return;
-        Location location = address.first;
+        mCurrentLocation = address.first;
         moveCamera(mCurrentLocation);
-        if (mCurrentPosMarker == null)
-            mCurrentPosMarker = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_pegman)).
-                    position(new LatLng(location.getLatitude(), location.getLongitude())).
-                    title(address.second).snippet(Float.toString(address.first.getSpeed())));
-        else {
-            mCurrentPosMarker.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
-            mCurrentPosMarker.setTitle(address.second);
-            mCurrentPosMarker.setSnippet(Float.toString(address.first.getSpeed()) + "m/s");
-        }
+        if (mCurrentPosMarker != null)
+            mCurrentPosMarker.remove();
+        mCurrentPosMarker = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_pegman)).
+                position(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude())).
+                title(address.second).snippet(Float.toString(mCurrentLocation.getSpeed()) + "m/s"));
+//        else {
+//            mCurrentPosMarker.setPosition(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()));
+//            mCurrentPosMarker.setTitle(address.second);
+//            mCurrentPosMarker.setSnippet(Float.toString(mCurrentLocation.getSpeed()) + "m/s");
+//        }
         mCurrentPosMarker.showInfoWindow();
 
-        latitudeTextView.setText(Double.toString(location.getLatitude()));
-        longitudeTextView.setText(Double.toString(location.getLongitude()));
+        latitudeTextView.setText(Double.toString(mCurrentLocation.getLatitude()));
+        longitudeTextView.setText(Double.toString(mCurrentLocation.getLongitude()));
 
 
     }
