@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -53,6 +54,8 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
     private MapView mapView;
     private GoogleMap mMap;
     private boolean cameraInitialized = false;
+    private TextView latitudeTextView;
+    private TextView longitudeTextView;
 
     public LocationFragment() {
         // Required empty public constructor
@@ -90,6 +93,9 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
                 apiAvailability.getErrorDialog(getActivity(), result, 2404).show();
             }
         }
+
+        latitudeTextView = rootView.findViewById(R.id.latitude_texxt);
+        longitudeTextView = rootView.findViewById(R.id.longitude_text);
 
         return rootView;
     }
@@ -242,6 +248,11 @@ public class LocationFragment extends Fragment implements OnMapReadyCallback, IL
             mCurrentPosMarker.setSnippet(Float.toString(address.first.getSpeed()) + "m/s");
         }
         mCurrentPosMarker.showInfoWindow();
+
+        latitudeTextView.setText(Double.toString(location.getLatitude()));
+        longitudeTextView.setText(Double.toString(location.getLongitude()));
+
+
     }
 
 

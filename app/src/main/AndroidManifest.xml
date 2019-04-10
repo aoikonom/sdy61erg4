@@ -27,7 +27,7 @@
                 android:value="erg4.aoikonom.sdy61.myapplication.StorageActivity" />
         </activity>
         <activity android:name=".SplashActivity"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

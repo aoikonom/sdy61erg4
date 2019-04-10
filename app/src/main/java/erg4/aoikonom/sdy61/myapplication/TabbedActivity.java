@@ -93,8 +93,6 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
                     return;
                 }
                 for (Location location : locationResult.getLocations()) {
-                    // Update UI with location data
-                    // ...
                     onLocationAquired(location);
                 }
             };
@@ -138,9 +136,7 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
         task.addOnSuccessListener(this, new OnSuccessListener<LocationSettingsResponse>() {
             @Override
             public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
-                // All location settings are satisfied. The client can initialize
-                // location requests here.
-                // ...
+
             }
         });
 
@@ -204,6 +200,10 @@ public class TabbedActivity extends AppCompatActivity implements LocationFragmen
     private void startLocationUpdates() {
         Log.d(TAG, "StartLocationUpdates");
         locationUpdates = true;
+        mFusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+            onLocationAquired(location);
+        });
+
         mFusedLocationClient.requestLocationUpdates(mLocationRequest,
                 mLocationCallback,
                 null /* Looper */);

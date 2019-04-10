@@ -24,4 +24,6 @@
     <string name="password">Κωδικός</string>
     <string name="register">ΕΓΓΡΑΦΗ</string>
     <string name="person">Person</string>
+    <string name="longitude">Longitude</string>
+    <string name="latitude">Latitude</string>
 </resources>
