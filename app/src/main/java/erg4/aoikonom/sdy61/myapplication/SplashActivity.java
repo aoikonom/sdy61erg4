@@ -9,6 +9,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -24,16 +25,47 @@ public class SplashActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_splash);
 
+        ImageView logo = findViewById(R.id.logo);
+
         Animation animation = AnimationUtils.loadAnimation(this, R.anim.splash_anim);
-        findViewById(R.id.logo).startAnimation(animation);
-
-        new Handler().postDelayed(new Runnable() {
+        animation.setAnimationListener(new Animation.AnimationListener() {
             @Override
-            public void run() {
-                Intent intent = new Intent(SplashActivity.this, StorageActivity.class);
-                startActivity(intent);
-            }
-        }, 4000);
+            public void onAnimationStart(Animation animation) {
 
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                Animation animation2 = AnimationUtils.loadAnimation(SplashActivity.this, R.anim.splash_anim2);
+                animation2.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        onAnimationCompleted();
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+
+                    }
+                });
+                logo.startAnimation(animation2);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+        logo.startAnimation(animation);
+    }
+
+    private void onAnimationCompleted() {
+        Intent intent = new Intent(SplashActivity.this, StorageActivity.class);
+        startActivity(intent);
     }
 }
